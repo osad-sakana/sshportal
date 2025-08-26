@@ -24,7 +24,7 @@ pub fn add_path(name: &str, path: &str, is_remote: bool) -> Result<(), Box<dyn s
 
     // 同名のパスが既に存在するかチェック
     if config.paths.contains_key(name) {
-        println!("{}: パス '{}' は既に存在します", "警告".yellow(), name);
+        println!("{}: パス '{}' は既に存在します", "WARN".yellow(), name);
         return Ok(());
     }
 
@@ -39,7 +39,7 @@ pub fn add_path(name: &str, path: &str, is_remote: bool) -> Result<(), Box<dyn s
     config.save()?;
 
     let path_type = if is_remote { "リモート" } else { "ローカル" };
-    println!("{}: {} パス '{}' を追加しました", "成功".green(), path_type, name);
+    println!("{}: {} パス '{}' を追加しました", "INFO".green(), path_type, name);
     Ok(())
 }
 
@@ -59,7 +59,7 @@ pub fn remove_path(name: &str) -> Result<(), Box<dyn std::error::Error>> {
 
     // パスが存在するかチェック
     if !config.paths.contains_key(name) {
-        println!("{}: パス '{}' が見つかりません", "エラー".red(), name);
+        println!("{}: パス '{}' が見つかりません", "ERROR".red(), name);
         return Ok(());
     }
 
@@ -67,7 +67,7 @@ pub fn remove_path(name: &str) -> Result<(), Box<dyn std::error::Error>> {
     config.paths.remove(name);
     config.save()?;
 
-    println!("{}: パス '{}' を削除しました", "成功".green(), name);
+    println!("{}: パス '{}' を削除しました", "INFO".green(), name);
     Ok(())
 }
 
@@ -123,7 +123,7 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
     let (src_path, src_host) = parse_path_spec(src, &config)?;
     let (dst_path, dst_host) = parse_path_spec(dst, &config)?;
 
-    println!("{}: {} から {} にコピー中...", "情報".blue(), src, dst);
+    println!("{}: {} から {} にコピー中...", "INFO".blue(), src, dst);
 
     // SCPコマンドを構築
     let mut cmd = std::process::Command::new("scp");
@@ -164,9 +164,9 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
 
     // 結果の表示
     if status.success() {
-        println!("{}: コピーが正常に完了しました", "成功".green());
+        println!("{}: コピーが正常に完了しました", "INFO".green());
     } else {
-        println!("{}: コピーに失敗しました", "エラー".red());
+        println!("{}: コピーに失敗しました", "ERROR".red());
     }
 
     Ok(())

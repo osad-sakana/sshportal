@@ -24,7 +24,7 @@ pub fn add_host(name: &str, connection: &str, port: u16) -> Result<(), Box<dyn s
     
     // 同名のホストが既に存在するかチェック
     if config.hosts.contains_key(name) {
-        println!("{}: ホスト '{}' は既に存在します", "警告".yellow(), name);
+        println!("{}: ホスト '{}' は既に存在します", "WARN".yellow(), name);
         return Ok(());
     }
 
@@ -38,7 +38,7 @@ pub fn add_host(name: &str, connection: &str, port: u16) -> Result<(), Box<dyn s
     config.hosts.insert(name.to_string(), host);
     config.save()?;
 
-    println!("{}: ホスト '{}' を追加しました", "成功".green(), name);
+    println!("{}: ホスト '{}' を追加しました", "INFO".green(), name);
     Ok(())
 }
 
@@ -58,7 +58,7 @@ pub fn remove_host(name: &str) -> Result<(), Box<dyn std::error::Error>> {
 
     // ホストが存在するかチェック
     if !config.hosts.contains_key(name) {
-        println!("{}: ホスト '{}' が見つかりません", "エラー".red(), name);
+        println!("{}: ホスト '{}' が見つかりません", "ERROR".red(), name);
         return Ok(());
     }
 
@@ -66,7 +66,7 @@ pub fn remove_host(name: &str) -> Result<(), Box<dyn std::error::Error>> {
     config.hosts.remove(name);
     config.save()?;
 
-    println!("{}: ホスト '{}' を削除しました", "成功".green(), name);
+    println!("{}: ホスト '{}' を削除しました", "INFO".green(), name);
     Ok(())
 }
 
@@ -114,13 +114,13 @@ pub fn connect_host(name: &str) -> Result<(), Box<dyn std::error::Error>> {
     let host = match config.hosts.get(name) {
         Some(host) => host,
         None => {
-            println!("{}: ホスト '{}' が見つかりません", "エラー".red(), name);
+            println!("{}: ホスト '{}' が見つかりません", "ERROR".red(), name);
             println!("利用可能なホストを確認するには 'sshportal list-hosts' を使用してください");
             return Ok(());
         }
     };
 
-    println!("{}: ホスト '{}' に接続中...", "情報".blue(), name);
+    println!("{}: ホスト '{}' に接続中...", "INFO".blue(), name);
     
     // SSH接続コマンドを実行
     // 注意: ssh_commandは表示用で、実際の接続には使用していません
