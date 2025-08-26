@@ -135,9 +135,15 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
     // コピー元の設定
     if let Some(ref host) = src_host {
         // リモートホストからのコピーの場合
-        let host_config = config.hosts.get(host).ok_or(format!("ホスト '{}' が見つかりません", host))?;
-        cmd.arg("-P").arg(&host_config.port.to_string());
-        cmd.arg(format!("{}:{}", host_config.connection, src_path));
+        if let Some(host_config) = config.hosts.get(host) {
+            // エイリアスホストの場合：設定からポート番号と接続情報を取得
+            cmd.arg("-P").arg(host_config.port.to_string());
+            cmd.arg(format!("{}:{}", host_config.connection, src_path));
+        } else {
+            // 直接指定ホストの場合：デフォルトポート22を使用
+            cmd.arg("-P").arg("22");
+            cmd.arg(format!("{}:{}", host, src_path));
+        }
     } else {
         // ローカルファイルからのコピーの場合
         let expanded_src = Config::expand_path(&src_path);
@@ -147,12 +153,21 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
     // コピー先の設定
     if let Some(ref host) = dst_host {
         // リモートホストへのコピーの場合
-        let host_config = config.hosts.get(host).ok_or(format!("ホスト '{}' が見つかりません", host))?;
-        // コピー元がローカルの場合のみポート番号を指定
-        if src_is_local {
-            cmd.arg("-P").arg(&host_config.port.to_string());
+        if let Some(host_config) = config.hosts.get(host) {
+            // エイリアスホストの場合：設定からポート番号と接続情報を取得
+            // コピー元がローカルの場合のみポート番号を指定
+            if src_is_local {
+                cmd.arg("-P").arg(host_config.port.to_string());
+            }
+            cmd.arg(format!("{}:{}", host_config.connection, dst_path));
+        } else {
+            // 直接指定ホストの場合：デフォルトポート22を使用
+            // コピー元がローカルの場合のみポート番号を指定
+            if src_is_local {
+                cmd.arg("-P").arg("22");
+            }
+            cmd.arg(format!("{}:{}", host, dst_path));
         }
-        cmd.arg(format!("{}:{}", host_config.connection, dst_path));
     } else {
         // ローカルファイルへのコピーの場合
         let expanded_dst = Config::expand_path(&dst_path);
@@ -205,8 +220,14 @@ fn parse_path_spec(spec: &str, config: &Config) -> Result<(String, Option<String
             return Ok((path, Some(host)));
         }
 
-        // ホストが見つからない場合は文字列をそのまま返す
-        return Ok((spec.to_string(), None));
+        // ケース2: ホスト名が直接のSSH接続文字列の可能性（user@hostname形式）
+        if host.contains('@') || is_valid_hostname(&host) {
+            // 直接SSH接続文字列として扱う
+            return Ok((path, Some(host)));
+        }
+
+        // ケース3: 不明なホスト形式
+        return Err(format!("ホスト '{}' が見つからず、有効なSSH接続文字列でもありません", host).into());
     }
 
     // コロンが含まれない場合はローカルパスまたはパスエイリアス
@@ -221,4 +242,78 @@ fn parse_path_spec(spec: &str, config: &Config) -> Result<(String, Option<String
 
     // パスエイリアスでない場合は文字列をそのまま返す
     Ok((spec.to_string(), None))
+}
+
+/// ホスト名が有効かどうかをチェックします
+/// 
+/// 基本的なホスト名の形式をチェックします（RFC準拠ではない簡易版）
+/// 
+/// # 引数
+/// * `hostname` - チェックするホスト名
+/// 
+/// # 戻り値
+/// 有効なホスト名の場合はtrue
+fn is_valid_hostname(hostname: &str) -> bool {
+    if hostname.is_empty() || hostname.len() > 253 {
+        return false;
+    }
+
+    // 基本的なホスト名の規則をチェック
+    // - 英数字とハイフン、ピリオドのみ
+    // - ハイフンで始まらない、終わらない
+    // - 連続するピリオドがない
+    let chars: Vec<char> = hostname.chars().collect();
+    
+    for (i, &ch) in chars.iter().enumerate() {
+        match ch {
+            'a'..='z' | 'A'..='Z' | '0'..='9' => continue,
+            '-' => {
+                if i == 0 || i == chars.len() - 1 {
+                    return false;
+                }
+            }
+            '.' => {
+                if i == 0 || i == chars.len() - 1 {
+                    return false;
+                }
+                if i > 0 && chars[i - 1] == '.' {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
+    }
+    
+    // IPアドレスの場合も有効とする
+    if is_valid_ip_address(hostname) {
+        return true;
+    }
+    
+    true
+}
+
+/// IPアドレス（IPv4）が有効かどうかをチェックします
+/// 
+/// # 引数
+/// * `ip` - チェックするIPアドレス文字列
+/// 
+/// # 戻り値
+/// 有効なIPv4アドレスの場合はtrue
+fn is_valid_ip_address(ip: &str) -> bool {
+    let parts: Vec<&str> = ip.split('.').collect();
+    if parts.len() != 4 {
+        return false;
+    }
+    
+    for part in parts {
+        if let Ok(_num) = part.parse::<u8>() {
+            if part.len() > 1 && part.starts_with('0') {
+                return false; // 先頭ゼロは無効
+            }
+        } else {
+            return false;
+        }
+    }
+    
+    true
 }
