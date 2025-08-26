@@ -129,6 +129,9 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
     let mut cmd = std::process::Command::new("scp");
     cmd.arg("-r"); // 再帰的コピーのオプション
 
+    // コピー元がローカルかどうかを事前に判定
+    let src_is_local = src_host.is_none();
+
     // コピー元の設定
     if let Some(ref host) = src_host {
         // リモートホストからのコピーの場合
@@ -142,11 +145,11 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
     }
 
     // コピー先の設定
-    if let Some(host) = dst_host {
+    if let Some(ref host) = dst_host {
         // リモートホストへのコピーの場合
-        let host_config = config.hosts.get(&host).ok_or(format!("ホスト '{}' が見つかりません", host))?;
+        let host_config = config.hosts.get(host).ok_or(format!("ホスト '{}' が見つかりません", host))?;
         // コピー元がローカルの場合のみポート番号を指定
-        if src_host.is_none() {
+        if src_is_local {
             cmd.arg("-P").arg(&host_config.port.to_string());
         }
         cmd.arg(format!("{}:{}", host_config.connection, dst_path));
