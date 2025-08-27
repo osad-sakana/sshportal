@@ -100,3 +100,37 @@ The SCP functionality in `copy_files()` has complex logic for handling different
 - Atomic operations - config loaded, modified, saved
 - Pretty-printed JSON for human readability
 - Directory structure auto-creation
+
+## Privacy and Security Guidelines
+
+**CRITICAL: When working with this repository, Claude Code must NEVER include any actual personal information, real hostnames, IP addresses, usernames, directory paths, or configuration data in commits, documentation, or examples.**
+
+### Prohibited Information in Commits
+- **NO** real usernames or personal names
+- **NO** real hostnames or IP addresses (e.g., 192.168.x.x, specific domain names)
+- **NO** actual directory paths from the local system (e.g., /Users/username/...)
+- **NO** real SSH key paths or configuration details
+- **NO** actual configuration file contents
+
+### Required Practices
+1. **Use Generic Examples Only**: Always use placeholder examples like:
+   - Hostnames: `prod.example.com`, `staging.example.com`, `dev.example.com`
+   - Users: `user`, `admin`, `developer`
+   - IP addresses: `192.168.1.100`, `10.0.0.1` (RFC 1918 examples)
+   - Paths: `~/projects`, `/var/www/html`, `/opt/api`
+
+2. **Documentation Standards**: All README examples, code comments, and documentation must use generic, non-identifying placeholders.
+
+3. **Git History Protection**: 
+   - Never commit `.claude/` directory (already in .gitignore)
+   - Remove any accidentally committed personal information using git history rewriting
+   - Verify git history contains no sensitive data before pushing
+
+4. **Configuration Examples**: When showing configuration examples, use fictional data that demonstrates functionality without revealing actual setup details.
+
+### Compliance Verification
+Before any commit or documentation update, verify that:
+- [ ] No real personal information is included
+- [ ] All examples use generic placeholders  
+- [ ] No actual system paths or configurations are exposed
+- [ ] Git history contains no sensitive information
