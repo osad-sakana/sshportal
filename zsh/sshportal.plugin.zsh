@@ -14,12 +14,8 @@ _sshportal() {
     case $state in
         args)
             case $words[1] in
-                add-host)
-                    _arguments \
-                        '1:name:' \
-                        '2:connection:' \
-                        '(-p --port)'{-p,--port}'[SSH port]:port:' \
-                        '(-i --identity-file)'{-i,--identity-file}'[SSH private key path]:file:_files'
+                add-host|add-paths)
+                    # No arguments needed for interactive commands
                     ;;
                 remove-host|connect)
                     _arguments '1:host:_sshportal_hosts'
@@ -38,20 +34,6 @@ _sshportal() {
                         '1:source:_sshportal_copy_source' \
                         '2:destination:_sshportal_copy_destination'
                     ;;
-                add-local-path)
-                    _arguments \
-                        '1:name:' \
-                        '2:path:_files'
-                    ;;
-                add-host-path)
-                    _arguments \
-                        '1:host:_sshportal_hosts' \
-                        '2:name:' \
-                        '3:path:'
-                    ;;
-                add-host-interactive|add-path-interactive)
-                    # No arguments needed for interactive commands
-                    ;;
             esac
             ;;
     esac
@@ -61,7 +43,7 @@ _sshportal() {
 _sshportal_commands() {
     local commands
     commands=(
-        'add-host:Add a new host'
+        'add-host:Add a new host (interactive)'
         'remove-host:Remove a host'
         'list-hosts:List all configured hosts'
         'connect:Connect to a host'
@@ -69,10 +51,7 @@ _sshportal_commands() {
         'remove-path:Remove a path alias'
         'list-paths:List all configured paths'
         'copy:Copy files using SCP with path aliases'
-        'add-local-path:Add a local path alias'
-        'add-host-path:Add a host-specific remote path alias'
-        'add-host-interactive:Add a host interactively'
-        'add-path-interactive:Add a path interactively'
+        'add-paths:Add path aliases (interactive)'
     )
     _describe 'commands' commands
 }

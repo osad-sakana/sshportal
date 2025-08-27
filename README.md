@@ -4,8 +4,9 @@ RustでSSH接続とSCP転送を簡略化するzshプラグインです。
 
 ## 特徴
 
-- **ホスト管理**: SSH接続先をエイリアス名で管理し、追加・削除・接続が可能
-- **パス管理**: ローカルおよびリモートパスのショートカットを作成
+- **インタラクティブ設定**: 引数を覚える必要なし。対話形式で簡単設定
+- **ホスト管理**: SSH接続先をエイリアス名で管理、SSH秘密鍵認証サポート
+- **ホスト別パス管理**: 各ホストで異なるディレクトリ構造に対応
 - **SCP機能強化**: パスとホストのエイリアスを使用したファイルコピー
 - **zsh統合**: 全コマンドの自動補完とssh/scpコマンドの補完強化
 - **JSON設定**: `~/.config/sshportal/config.json`での人間が読みやすい設定管理
@@ -37,8 +38,9 @@ source ~/.zshrc
 ### ホスト管理
 
 ```bash
-# ホストの追加
-sshportal add-host prod user@192.168.1.100 -p 22
+# ホストの追加（インタラクティブ）
+sshportal add-host
+# → ホスト名、接続文字列、ポート、秘密鍵パスを順次入力
 
 # ホストの削除
 sshportal remove-host prod
@@ -53,11 +55,10 @@ sshportal connect prod
 ### パス管理
 
 ```bash
-# ローカルパスの追加
-sshportal add-path docs ~/Documents/projects
-
-# リモートパスの追加
-sshportal add-path webroot /var/www/html -r
+# パスの追加（インタラクティブ）
+sshportal add-paths
+# → 1) ローカルパス または 2) ホスト固有パス を選択
+# → 選択に応じてパス名と実際のパスを入力
 
 # パスの削除
 sshportal remove-path docs
@@ -69,12 +70,15 @@ sshportal list-paths
 ### ファイル転送
 
 ```bash
-# エイリアスを使用したコピー
-sshportal copy docs prod:webroot
+# ローカルパス → ホスト別リモートパス
+sshportal copy downloads prod:webroot
 
-# エイリアスと直接パスの混在使用
-sshportal copy ~/myfile.txt prod:/tmp/
-sshportal copy docs prod:/var/www/html/
+# ローカルパス → 直接パス
+sshportal copy downloads prod:/var/www/html/
+
+# 混在使用
+sshportal copy ~/myfile.txt prod:webroot
+sshportal copy downloads staging:webroot  # 同じパス名でも異なるホストで異なる実パス
 ```
 
 ### 便利なエイリアス
@@ -94,22 +98,36 @@ sshportal copy docs prod:/var/www/html/
 {
   "hosts": {
     "prod": {
-      "connection": "user@192.168.1.100",
+      "connection": "user@prod.example.com",
       "port": 22
+    },
+    "staging": {
+      "connection": "admin@staging.example.com",
+      "port": 2222,
+      "key_path": "~/.ssh/id_rsa_staging"
     }
   },
-  "paths": {
-    "docs": {
-      "path": "~/Documents/projects",
-      "is_remote": false
+  "local_paths": {
+    "downloads": "~/Downloads",
+    "projects": "~/projects"
+  },
+  "host_paths": {
+    "prod": {
+      "configs": "/etc/nginx",
+      "webroot": "/var/www/html"
     },
-    "webroot": {
-      "path": "/var/www/html",
-      "is_remote": true
+    "staging": {
+      "api": "/opt/api"
     }
   }
 }
 ```
+
+### 設定の説明
+
+- **hosts**: SSH接続先の設定。秘密鍵認証が必要な場合は`key_path`を指定
+- **local_paths**: ローカルマシンのパスエイリアス
+- **host_paths**: 各ホスト固有のパスエイリアス
 
 ## 自動補完
 
@@ -136,10 +154,22 @@ sshportal copy docs prod:/var/www/html/
 ## 使用例
 
 ```bash
-# セットアップ
-sshportal add-host dev alice@dev.example.com -p 2222
-sshportal add-path uploads ~/uploads
-sshportal add-path www /var/www -r
+# セットアップ（全て対話形式）
+sshportal add-host
+# → ホスト名: dev
+# → 接続文字列: alice@dev.example.com
+# → ポート: 2222
+# → SSH秘密鍵パス: ~/.ssh/id_rsa_dev
+
+sshportal add-paths
+# → パスの種類を選択: 1) ローカル 2) ホスト固有
+# → 1) ローカルパス選択時
+#    パス名: uploads
+#    実際のパス: ~/uploads
+# → 2) ホスト固有パス選択時
+#    ホスト名: dev
+#    パス名: www
+#    実際のパス: /var/www
 
 # 使用方法
 sshportal connect dev                    # dev環境への接続

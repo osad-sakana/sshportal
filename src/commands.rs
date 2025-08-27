@@ -6,7 +6,6 @@
 use clap::{Parser, Subcommand};
 use crate::host;
 use crate::path;
-use crate::path_new;
 
 /// sshportalのメインコマンドライン構造体
 /// 
@@ -26,18 +25,9 @@ pub struct Cli {
 /// サブコマンドとして提供します。
 #[derive(Subcommand)]
 pub enum Commands {
-    /// 新しいホストを追加
-    #[command(about = "新しいホストを追加")]
-    AddHost {
-        #[arg(help = "ホストのエイリアス名")]
-        name: String,
-        #[arg(help = "接続文字列（user@hostname）")]
-        connection: String,
-        #[arg(short, long, default_value = "22", help = "SSHポート番号")]
-        port: u16,
-        #[arg(short = 'i', long, help = "SSH秘密鍵のパス")]
-        identity_file: Option<String>,
-    },
+    /// 新しいホストを追加（インタラクティブ）
+    #[command(about = "新しいホストを追加（インタラクティブ）")]
+    AddHost,
     /// ホストを削除
     #[command(about = "ホストを削除")]
     RemoveHost {
@@ -80,30 +70,9 @@ pub enum Commands {
         #[arg(help = "コピー先パス（エイリアスまたはhost:path）")]
         dst: String,
     },
-    /// ローカルパスエイリアスを追加
-    #[command(about = "ローカルパスエイリアスを追加")]
-    AddLocalPath {
-        #[arg(help = "パスのエイリアス名")]
-        name: String,
-        #[arg(help = "パスの場所")]
-        path: String,
-    },
-    /// ホスト別リモートパスエイリアスを追加
-    #[command(about = "ホスト別リモートパスエイリアスを追加")]
-    AddHostPath {
-        #[arg(help = "ホスト名")]
-        host: String,
-        #[arg(help = "パスのエイリアス名")]
-        name: String,
-        #[arg(help = "リモートパスの場所")]
-        path: String,
-    },
-    /// インタラクティブにホストを追加
-    #[command(about = "インタラクティブにホストを追加")]
-    AddHostInteractive,
-    /// インタラクティブにパスを追加
-    #[command(about = "インタラクティブにパスを追加")]
-    AddPathInteractive,
+    /// パスエイリアスを追加（インタラクティブ）
+    #[command(about = "パスエイリアスを追加（インタラクティブ）")]
+    AddPaths,
 }
 
 /// コマンドを処理します
@@ -119,8 +88,8 @@ pub enum Commands {
 pub fn handle_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         // ホスト管理コマンド
-        Commands::AddHost { name, connection, port, identity_file } => {
-            host::add_host(&name, &connection, port, identity_file.as_deref())
+        Commands::AddHost => {
+            host::add_host_interactive()
         }
         Commands::RemoveHost { name } => {
             host::remove_host(&name)
@@ -139,25 +108,15 @@ pub fn handle_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             path::remove_path(&name)
         }
         Commands::ListPaths => {
-            path_new::list_paths_new()
+            path::list_paths_new()
         }
         // ファイル転送コマンド
         Commands::Copy { src, dst } => {
             path::copy_files(&src, &dst)
         }
-        // 新しいパス管理コマンド
-        Commands::AddLocalPath { name, path } => {
-            path_new::add_local_path(&name, &path)
-        }
-        Commands::AddHostPath { host, name, path } => {
-            path_new::add_host_path(&host, &name, &path)
-        }
-        // インタラクティブコマンド
-        Commands::AddHostInteractive => {
-            host::add_host_interactive()
-        }
-        Commands::AddPathInteractive => {
-            path_new::add_path_interactive()
+        // インタラクティブパス管理コマンド
+        Commands::AddPaths => {
+            path::add_path_interactive()
         }
     }
 }

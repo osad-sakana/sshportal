@@ -22,19 +22,6 @@ pub struct Host {
     pub key_path: Option<String>,
 }
 
-/// ローカルパス情報を保持する構造体
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LocalPath {
-    /// パスの文字列表現
-    pub path: String,
-}
-
-/// リモートパス情報を保持する構造体
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RemotePath {
-    /// パスの文字列表現
-    pub path: String,
-}
 
 /// 旧バージョンとの互換性のためのPath構造体（廃止予定）
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -53,12 +40,12 @@ pub struct Path {
 pub struct Config {
     /// ホスト名をキーとするホスト情報のマップ
     pub hosts: HashMap<String, Host>,
-    /// ローカルパスのエイリアス管理
+    /// ローカルパスのエイリアス管理 (alias -> path)
     #[serde(default)]
-    pub local_paths: HashMap<String, LocalPath>,
-    /// ホスト別のリモートパス管理 host_name -> (path_alias -> RemotePath)
+    pub local_paths: HashMap<String, String>,
+    /// ホスト別のリモートパス管理 host_name -> (path_alias -> path)
     #[serde(default)]
-    pub host_paths: HashMap<String, HashMap<String, RemotePath>>,
+    pub host_paths: HashMap<String, HashMap<String, String>>,
     /// 旧バージョンとの互換性のためのパス情報（廃止予定）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub paths: Option<HashMap<String, Path>>,
