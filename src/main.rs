@@ -6,6 +6,7 @@
 mod config;   // 設定ファイルの読み書き機能
 mod host;     // ホスト管理機能
 mod path;     // パス管理とファイル転送機能
+mod path_new; // 新しいパス管理機能
 mod commands; // コマンドライン引数の定義と処理
 
 use clap::Parser;

@@ -22,10 +22,21 @@ pub struct Host {
     pub key_path: Option<String>,
 }
 
-/// パス情報を保持する構造体
-/// 
-/// ローカルまたはリモートパスの情報を管理し、
-/// ファイル転送時のエイリアスとして使用されます。
+/// ローカルパス情報を保持する構造体
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LocalPath {
+    /// パスの文字列表現
+    pub path: String,
+}
+
+/// リモートパス情報を保持する構造体
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RemotePath {
+    /// パスの文字列表現
+    pub path: String,
+}
+
+/// 旧バージョンとの互換性のためのPath構造体（廃止予定）
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Path {
     /// パスの文字列表現
@@ -36,25 +47,34 @@ pub struct Path {
 
 /// sshportalの設定全体を管理する構造体
 /// 
-/// ホスト情報とパス情報のハッシュマップを含み、
+/// ホスト情報、ローカルパス、ホスト別リモートパスを含み、
 /// JSON形式でシリアライズ/デシリアライズされます。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// ホスト名をキーとするホスト情報のマップ
     pub hosts: HashMap<String, Host>,
-    /// パス名をキーとするパス情報のマップ
-    pub paths: HashMap<String, Path>,
+    /// ローカルパスのエイリアス管理
+    #[serde(default)]
+    pub local_paths: HashMap<String, LocalPath>,
+    /// ホスト別のリモートパス管理 host_name -> (path_alias -> RemotePath)
+    #[serde(default)]
+    pub host_paths: HashMap<String, HashMap<String, RemotePath>>,
+    /// 旧バージョンとの互換性のためのパス情報（廃止予定）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub paths: Option<HashMap<String, Path>>,
 }
 
 /// デフォルト設定の実装
 impl Default for Config {
     /// 空の設定を作成します
     /// 
-    /// ホストとパスのハッシュマップは初期化時は空になります。
+    /// ホスト、ローカルパス、ホスト別パスのハッシュマップは初期化時は空になります。
     fn default() -> Self {
         Config {
             hosts: HashMap::new(),
-            paths: HashMap::new(),
+            local_paths: HashMap::new(),
+            host_paths: HashMap::new(),
+            paths: None,
         }
     }
 }

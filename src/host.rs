@@ -5,6 +5,7 @@
 
 use crate::config::{Config, Host};
 use colored::*;
+use std::io::{self, Write};
 
 /// ホストを追加します
 /// 
@@ -142,5 +143,97 @@ pub fn connect_host(name: &str) -> Result<(), Box<dyn std::error::Error>> {
     
     cmd.status()?;
 
+    Ok(())
+}
+
+/// インタラクティブにホストを追加します
+pub fn add_host_interactive() -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}", "=== インタラクティブ ホスト追加 ===".bold().blue());
+    
+    // ホスト名の入力
+    print!("ホスト名（エイリアス）: ");
+    io::stdout().flush()?;
+    let mut name = String::new();
+    io::stdin().read_line(&mut name)?;
+    let name = name.trim();
+    
+    if name.is_empty() {
+        println!("{}: ホスト名は必須です", "ERROR".red());
+        return Ok(());
+    }
+    
+    // 既存チェック
+    let config = Config::load()?;
+    if config.hosts.contains_key(name) {
+        println!("{}: ホスト '{}' は既に存在します", "WARN".yellow(), name);
+        return Ok(());
+    }
+    
+    // 接続文字列の入力
+    print!("接続文字列 (user@hostname): ");
+    io::stdout().flush()?;
+    let mut connection = String::new();
+    io::stdin().read_line(&mut connection)?;
+    let connection = connection.trim();
+    
+    if connection.is_empty() {
+        println!("{}: 接続文字列は必須です", "ERROR".red());
+        return Ok(());
+    }
+    
+    // ポート番号の入力
+    print!("ポート番号 [22]: ");
+    io::stdout().flush()?;
+    let mut port_input = String::new();
+    io::stdin().read_line(&mut port_input)?;
+    let port_input = port_input.trim();
+    
+    let port = if port_input.is_empty() {
+        22
+    } else {
+        match port_input.parse::<u16>() {
+            Ok(p) => p,
+            Err(_) => {
+                println!("{}: 無効なポート番号です", "ERROR".red());
+                return Ok(());
+            }
+        }
+    };
+    
+    // 秘密鍵パスの入力
+    print!("SSH秘密鍵のパス (空白でスキップ): ");
+    io::stdout().flush()?;
+    let mut key_path = String::new();
+    io::stdin().read_line(&mut key_path)?;
+    let key_path = key_path.trim();
+    
+    let key_path = if key_path.is_empty() {
+        None
+    } else {
+        Some(key_path)
+    };
+    
+    // 確認表示
+    println!("\n{}", "=== 設定確認 ===".bold());
+    println!("ホスト名: {}", name.cyan());
+    println!("接続文字列: {}", connection);
+    println!("ポート: {}", port);
+    if let Some(key) = key_path {
+        println!("秘密鍵: {}", key);
+    }
+    
+    print!("\nこの設定で追加しますか？ [y/N]: ");
+    io::stdout().flush()?;
+    let mut confirm = String::new();
+    io::stdin().read_line(&mut confirm)?;
+    let confirm = confirm.trim().to_lowercase();
+    
+    if confirm == "y" || confirm == "yes" {
+        add_host(name, connection, port, key_path)?;
+        println!("{}: インタラクティブ追加が完了しました", "SUCCESS".green());
+    } else {
+        println!("{}: キャンセルされました", "INFO".yellow());
+    }
+    
     Ok(())
 }

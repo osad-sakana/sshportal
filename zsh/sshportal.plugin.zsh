@@ -38,6 +38,20 @@ _sshportal() {
                         '1:source:_sshportal_copy_source' \
                         '2:destination:_sshportal_copy_destination'
                     ;;
+                add-local-path)
+                    _arguments \
+                        '1:name:' \
+                        '2:path:_files'
+                    ;;
+                add-host-path)
+                    _arguments \
+                        '1:host:_sshportal_hosts' \
+                        '2:name:' \
+                        '3:path:'
+                    ;;
+                add-host-interactive|add-path-interactive)
+                    # No arguments needed for interactive commands
+                    ;;
             esac
             ;;
     esac
@@ -51,10 +65,14 @@ _sshportal_commands() {
         'remove-host:Remove a host'
         'list-hosts:List all configured hosts'
         'connect:Connect to a host'
-        'add-path:Add a path alias'
+        'add-path:Add a path alias (legacy)'
         'remove-path:Remove a path alias'
         'list-paths:List all configured paths'
         'copy:Copy files using SCP with path aliases'
+        'add-local-path:Add a local path alias'
+        'add-host-path:Add a host-specific remote path alias'
+        'add-host-interactive:Add a host interactively'
+        'add-path-interactive:Add a path interactively'
     )
     _describe 'commands' commands
 }

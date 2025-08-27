@@ -6,6 +6,7 @@
 use clap::{Parser, Subcommand};
 use crate::host;
 use crate::path;
+use crate::path_new;
 
 /// sshportalのメインコマンドライン構造体
 /// 
@@ -79,6 +80,30 @@ pub enum Commands {
         #[arg(help = "コピー先パス（エイリアスまたはhost:path）")]
         dst: String,
     },
+    /// ローカルパスエイリアスを追加
+    #[command(about = "ローカルパスエイリアスを追加")]
+    AddLocalPath {
+        #[arg(help = "パスのエイリアス名")]
+        name: String,
+        #[arg(help = "パスの場所")]
+        path: String,
+    },
+    /// ホスト別リモートパスエイリアスを追加
+    #[command(about = "ホスト別リモートパスエイリアスを追加")]
+    AddHostPath {
+        #[arg(help = "ホスト名")]
+        host: String,
+        #[arg(help = "パスのエイリアス名")]
+        name: String,
+        #[arg(help = "リモートパスの場所")]
+        path: String,
+    },
+    /// インタラクティブにホストを追加
+    #[command(about = "インタラクティブにホストを追加")]
+    AddHostInteractive,
+    /// インタラクティブにパスを追加
+    #[command(about = "インタラクティブにパスを追加")]
+    AddPathInteractive,
 }
 
 /// コマンドを処理します
@@ -114,11 +139,25 @@ pub fn handle_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             path::remove_path(&name)
         }
         Commands::ListPaths => {
-            path::list_paths()
+            path_new::list_paths_new()
         }
         // ファイル転送コマンド
         Commands::Copy { src, dst } => {
             path::copy_files(&src, &dst)
+        }
+        // 新しいパス管理コマンド
+        Commands::AddLocalPath { name, path } => {
+            path_new::add_local_path(&name, &path)
+        }
+        Commands::AddHostPath { host, name, path } => {
+            path_new::add_host_path(&host, &name, &path)
+        }
+        // インタラクティブコマンド
+        Commands::AddHostInteractive => {
+            host::add_host_interactive()
+        }
+        Commands::AddPathInteractive => {
+            path_new::add_path_interactive()
         }
     }
 }

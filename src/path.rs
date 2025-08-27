@@ -5,6 +5,7 @@
 
 use crate::config::{Config, Path};
 use colored::*;
+use std::collections::HashMap;
 
 /// パスエイリアスを追加します
 /// 
@@ -22,8 +23,11 @@ pub fn add_path(name: &str, path: &str, is_remote: bool) -> Result<(), Box<dyn s
     // 現在の設定を読み込み
     let mut config = Config::load()?;
 
+    // 旧バージョンのパス形式を使用（互換性のため）
+    let old_paths = config.paths.get_or_insert_with(HashMap::new);
+
     // 同名のパスが既に存在するかチェック
-    if config.paths.contains_key(name) {
+    if old_paths.contains_key(name) {
         println!("{}: パス '{}' は既に存在します", "WARN".yellow(), name);
         return Ok(());
     }
@@ -35,7 +39,7 @@ pub fn add_path(name: &str, path: &str, is_remote: bool) -> Result<(), Box<dyn s
     };
 
     // 設定にパスを追加し、保存
-    config.paths.insert(name.to_string(), path_entry);
+    old_paths.insert(name.to_string(), path_entry);
     config.save()?;
 
     let path_type = if is_remote { "リモート" } else { "ローカル" };
@@ -57,14 +61,17 @@ pub fn remove_path(name: &str) -> Result<(), Box<dyn std::error::Error>> {
     // 現在の設定を読み込み
     let mut config = Config::load()?;
 
+    // 旧バージョンのパス形式を使用（互換性のため）
+    let old_paths = config.paths.get_or_insert_with(HashMap::new);
+
     // パスが存在するかチェック
-    if !config.paths.contains_key(name) {
+    if !old_paths.contains_key(name) {
         println!("{}: パス '{}' が見つかりません", "ERROR".red(), name);
         return Ok(());
     }
 
     // パスを削除し、設定を保存
-    config.paths.remove(name);
+    old_paths.remove(name);
     config.save()?;
 
     println!("{}: パス '{}' を削除しました", "INFO".green(), name);
@@ -82,23 +89,26 @@ pub fn list_paths() -> Result<(), Box<dyn std::error::Error>> {
     // 現在の設定を読み込み
     let config = Config::load()?;
 
-    // パスが設定されているかチェック
-    if config.paths.is_empty() {
-        println!("設定されているパスはありません");
-        return Ok(());
-    }
-
-    // パス一覧を表示
-    println!("{}", "設定済みパス:".bold());
-    for (name, path) in &config.paths {
-        let path_type = if path.is_remote { "リモート" } else { "ローカル" };
-        // ローカルパスの場合は展開表示
-        let expanded_path = if !path.is_remote {
-            Config::expand_path(&path.path)
+    // 旧バージョンのパス（互換性のため）
+    if let Some(ref old_paths) = config.paths {
+        if old_paths.is_empty() {
+            println!("設定されているパスはありません（旧形式）");
         } else {
-            path.path.clone()
-        };
-        println!("  {} ({}) -> {}", name.cyan(), path_type.yellow(), expanded_path);
+            // パス一覧を表示
+            println!("{}", "設定済みパス（旧形式）:".bold());
+            for (name, path) in old_paths {
+                let path_type = if path.is_remote { "リモート" } else { "ローカル" };
+                // ローカルパスの場合は展開表示
+                let expanded_path = if !path.is_remote {
+                    Config::expand_path(&path.path)
+                } else {
+                    path.path.clone()
+                };
+                println!("  {} ({}) -> {}", name.cyan(), path_type.yellow(), expanded_path);
+            }
+        }
+    } else {
+        println!("設定されているパスはありません");
     }
 
     Ok(())
@@ -215,14 +225,16 @@ fn parse_path_spec(spec: &str, config: &Config) -> Result<(String, Option<String
 
         // ホスト名が設定に存在するかチェック
         if config.hosts.contains_key(&host) {
-            // パス部分がパスエイリアスかチェック
-            if config.paths.contains_key(&path) {
-                let path_entry = &config.paths[&path];
-                // リモートパスでない場合はエラー
-                if !path_entry.is_remote {
-                    return Err(format!("パス '{}' はリモートパスではありません", path).into());
+            // パス部分がパスエイリアスかチェック（旧形式との互換性）
+            if let Some(ref old_paths) = config.paths {
+                if old_paths.contains_key(&path) {
+                    let path_entry = &old_paths[&path];
+                    // リモートパスでない場合はエラー
+                    if !path_entry.is_remote {
+                        return Err(format!("パス '{}' はリモートパスではありません", path).into());
+                    }
+                    return Ok((path_entry.path.clone(), Some(host)));
                 }
-                return Ok((path_entry.path.clone(), Some(host)));
             }
             // 直接パスの場合
             return Ok((path, Some(host)));
@@ -238,14 +250,16 @@ fn parse_path_spec(spec: &str, config: &Config) -> Result<(String, Option<String
         return Err(format!("ホスト '{}' が見つからず、有効なSSH接続文字列でもありません", host).into());
     }
 
-    // コロンが含まれない場合はローカルパスまたはパスエイリアス
-    if config.paths.contains_key(spec) {
-        let path_entry = &config.paths[spec];
-        // リモートパスの場合はホスト指定が必要
-        if path_entry.is_remote {
-            return Err(format!("パス '{}' はリモートパスですが、ホストが指定されていません", spec).into());
+    // コロンが含まれない場合はローカルパスまたはパスエイリアス（旧形式との互換性）
+    if let Some(ref old_paths) = config.paths {
+        if old_paths.contains_key(spec) {
+            let path_entry = &old_paths[spec];
+            // リモートパスの場合はホスト指定が必要
+            if path_entry.is_remote {
+                return Err(format!("パス '{}' はリモートパスですが、ホストが指定されていません", spec).into());
+            }
+            return Ok((path_entry.path.clone(), None));
         }
-        return Ok((path_entry.path.clone(), None));
     }
 
     // パスエイリアスでない場合は文字列をそのまま返す
