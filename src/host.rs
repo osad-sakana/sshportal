@@ -8,17 +8,18 @@ use colored::*;
 
 /// ホストを追加します
 /// 
-/// 指定された名前、接続文字列、ポート番号で新しいホストを設定に追加します。
+/// 指定された名前、接続文字列、ポート番号、秘密鍵パスで新しいホストを設定に追加します。
 /// 同名のホストが既に存在する場合は警告メッセージを表示します。
 /// 
 /// # 引数
 /// * `name` - ホストのエイリアス名
 /// * `connection` - SSH接続文字列（例: "user@hostname"）
 /// * `port` - SSH接続ポート番号
+/// * `key_path` - SSH秘密鍵のパス（オプション）
 /// 
 /// # 戻り値
 /// 成功時は()、失敗時はエラーを返します。
-pub fn add_host(name: &str, connection: &str, port: u16) -> Result<(), Box<dyn std::error::Error>> {
+pub fn add_host(name: &str, connection: &str, port: u16, key_path: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     // 現在の設定を読み込み
     let mut config = Config::load()?;
     
@@ -32,6 +33,7 @@ pub fn add_host(name: &str, connection: &str, port: u16) -> Result<(), Box<dyn s
     let host = Host {
         connection: connection.to_string(),
         port,
+        key_path: key_path.map(|k| Config::expand_path(k)),
     };
 
     // 設定にホストを追加し、保存
@@ -90,7 +92,12 @@ pub fn list_hosts() -> Result<(), Box<dyn std::error::Error>> {
     // ホスト一覧を表示
     println!("{}", "設定済みホスト:".bold());
     for (name, host) in &config.hosts {
-        println!("  {} -> {}:{}", name.cyan(), host.connection, host.port);
+        let key_info = if let Some(ref key) = host.key_path {
+            format!(" (key: {})", key)
+        } else {
+            String::new()
+        };
+        println!("  {} -> {}:{}{}", name.cyan(), host.connection, host.port, key_info.dimmed());
     }
 
     Ok(())
@@ -123,13 +130,17 @@ pub fn connect_host(name: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("{}: ホスト '{}' に接続中...", "INFO".blue(), name);
     
     // SSH接続コマンドを実行
-    // 注意: ssh_commandは表示用で、実際の接続には使用していません
-    let _ssh_command = format!("ssh {} -p {}", host.connection, host.port);
-    std::process::Command::new("ssh")
-        .arg(&host.connection)
+    let mut cmd = std::process::Command::new("ssh");
+    cmd.arg(&host.connection)
         .arg("-p")
-        .arg(&host.port.to_string())
-        .status()?;
+        .arg(&host.port.to_string());
+    
+    // 秘密鍵が指定されている場合は追加
+    if let Some(ref key_path) = host.key_path {
+        cmd.arg("-i").arg(key_path);
+    }
+    
+    cmd.status()?;
 
     Ok(())
 }

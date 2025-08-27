@@ -18,7 +18,8 @@ _sshportal() {
                     _arguments \
                         '1:name:' \
                         '2:connection:' \
-                        '(-p --port)'{-p,--port}'[SSH port]:port:'
+                        '(-p --port)'{-p,--port}'[SSH port]:port:' \
+                        '(-i --identity-file)'{-i,--identity-file}'[SSH private key path]:file:_files'
                     ;;
                 remove-host|connect)
                     _arguments '1:host:_sshportal_hosts'

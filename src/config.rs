@@ -10,13 +10,16 @@ use std::path::PathBuf;
 
 /// SSH接続ホストの情報を保持する構造体
 /// 
-/// ホスト名、ユーザー名、ポート番号を含む接続情報を管理します。
+/// ホスト名、ユーザー名、ポート番号、秘密鍵パスを含む接続情報を管理します。
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Host {
     /// SSH接続文字列（例: "user@hostname"）
     pub connection: String,
     /// SSH接続ポート番号（デフォルト: 22）
     pub port: u16,
+    /// SSH秘密鍵のパス（オプション）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_path: Option<String>,
 }
 
 /// パス情報を保持する構造体

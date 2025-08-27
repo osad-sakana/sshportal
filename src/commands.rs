@@ -34,6 +34,8 @@ pub enum Commands {
         connection: String,
         #[arg(short, long, default_value = "22", help = "SSHポート番号")]
         port: u16,
+        #[arg(short = 'i', long, help = "SSH秘密鍵のパス")]
+        identity_file: Option<String>,
     },
     /// ホストを削除
     #[command(about = "ホストを削除")]
@@ -92,8 +94,8 @@ pub enum Commands {
 pub fn handle_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         // ホスト管理コマンド
-        Commands::AddHost { name, connection, port } => {
-            host::add_host(&name, &connection, port)
+        Commands::AddHost { name, connection, port, identity_file } => {
+            host::add_host(&name, &connection, port, identity_file.as_deref())
         }
         Commands::RemoveHost { name } => {
             host::remove_host(&name)

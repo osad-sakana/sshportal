@@ -138,6 +138,10 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
         if let Some(host_config) = config.hosts.get(host) {
             // エイリアスホストの場合：設定からポート番号と接続情報を取得
             cmd.arg("-P").arg(host_config.port.to_string());
+            // 秘密鍵が指定されている場合は追加
+            if let Some(ref key_path) = host_config.key_path {
+                cmd.arg("-i").arg(key_path);
+            }
             cmd.arg(format!("{}:{}", host_config.connection, src_path));
         } else {
             // 直接指定ホストの場合：デフォルトポート22を使用
@@ -158,6 +162,10 @@ pub fn copy_files(src: &str, dst: &str) -> Result<(), Box<dyn std::error::Error>
             // コピー元がローカルの場合のみポート番号を指定
             if src_is_local {
                 cmd.arg("-P").arg(host_config.port.to_string());
+                // 秘密鍵が指定されている場合は追加
+                if let Some(ref key_path) = host_config.key_path {
+                    cmd.arg("-i").arg(key_path);
+                }
             }
             cmd.arg(format!("{}:{}", host_config.connection, dst_path));
         } else {
